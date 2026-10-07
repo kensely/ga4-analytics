@@ -1,0 +1,93 @@
+name: Daily GA4 Report
+
+on:
+  schedule:
+    - cron: '0 23 * * *'   # 每天 07:00 台灣時間（UTC+8 = UTC 23:00）
+  workflow_dispatch:         # 允許手動觸發
+
+jobs:
+  generate-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Write GA4 credentials
+        run: echo '${{ secrets.GA4_SERVICE_ACCOUNT_JSON }}' > service-account.json
+
+      - name: Create .env
+        run: |
+          echo "GA4_PROPERTY_ID=${{ secrets.GA4_PROPERTY_ID }}" > .env
+          echo "GOOGLE_APPLICATION_CREDENTIALS=./service-account.json" >> .env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> .env
+
+      - name: Generate reports
+        run: npm run report
+
+      - name: Generate index page
+        run: |
+          cat > reports/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="zh-TW">
+          <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>ETMALL Analytics</title>
+          <style>
+            body { font-family: -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 40px 24px; }
+            h1 { font-size: 1.6rem; margin-bottom: 8px; }
+            p  { color: #94a3b8; margin-bottom: 32px; font-size: .9rem; }
+            .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; max-width: 900px; }
+            a.card {
+              display: block; background: #1e293b; border: 1px solid #334155;
+              border-radius: 12px; padding: 20px 24px; text-decoration: none; color: inherit;
+              transition: border-color .2s, background .2s;
+            }
+            a.card:hover { border-color: #38bdf8; background: #0f2a3d; }
+            .icon { font-size: 1.8rem; margin-bottom: 10px; }
+            .title { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+            .desc  { color: #94a3b8; font-size: .82rem; }
+            .updated { margin-top: 40px; color: #475569; font-size: .8rem; }
+          </style>
+          </head>
+          <body>
+          <h1>📊 ETMALL Analytics</h1>
+          <p>資料每日早上 07:00 自動更新</p>
+          <div class="grid">
+            <a class="card" href="report-ai.html">
+              <div class="icon">🤖</div>
+              <div class="title">AI 搜尋報告</div>
+              <div class="desc">本月 / 上月流量、AI 搜尋產生的營收與轉換</div>
+            </a>
+            <a class="card" href="report-search.html">
+              <div class="icon">🔍</div>
+              <div class="title">搜尋字詞排行</div>
+              <div class="desc">當天 / 前 7 天 Top 100 搜尋字詞與趨勢</div>
+            </a>
+          </div>
+          <div class="updated">GENERATED_TIME</div>
+          <script>
+            document.querySelector('.updated').textContent =
+              '最後更新：' + new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+          </script>
+          </body>
+          </html>
+          EOF
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy reports --project-name=etmall-reports --commit-dirty=true

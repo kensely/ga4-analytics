@@ -24,7 +24,9 @@ jobs:
         run: npm ci
 
       - name: Write GA4 credentials
-        run: echo '${{ secrets.GA4_SERVICE_ACCOUNT_JSON }}' > service-account.json
+        env:
+          SA_JSON: ${{ secrets.GA4_SERVICE_ACCOUNT_JSON }}
+        run: printf '%s' "$SA_JSON" > service-account.json
 
       - name: Create .env
         run: |

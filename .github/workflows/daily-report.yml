@@ -32,6 +32,33 @@ jobs:
           echo "GA4_PROPERTY_ID=${{ secrets.GA4_PROPERTY_ID }}" >> $GITHUB_ENV
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> $GITHUB_ENV
 
+      - name: Verify credentials
+        run: |
+          echo "=== Credential path ==="
+          echo "$GOOGLE_APPLICATION_CREDENTIALS"
+          ls -la "$GOOGLE_APPLICATION_CREDENTIALS" || echo "FILE NOT FOUND"
+          python3 - <<'PYEOF'
+          import json, os, sys
+          path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '')
+          try:
+              with open(path) as f:
+                  content = f.read()
+              print(f"File size: {len(content)} bytes")
+              d = json.loads(content)
+              print(f"type: {d.get('type')}")
+              print(f"project_id: {d.get('project_id')}")
+              print(f"client_email: {d.get('client_email')}")
+              pk = d.get('private_key', '')
+              print(f"private_key length: {len(pk)}")
+              print(f"private_key first 60: {repr(pk[:60])}")
+              print(f"has BEGIN: {'-----BEGIN' in pk}")
+              print(f"has newlines: {chr(10) in pk}")
+              print("JSON VALID")
+          except Exception as e:
+              print(f"ERROR: {e}", file=sys.stderr)
+              sys.exit(1)
+          PYEOF
+
       - name: Generate reports
         run: npm run report
 

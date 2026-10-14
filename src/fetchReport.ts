@@ -595,7 +595,10 @@ export async function fetchHourlyTrafficDays(days: number): Promise<Map<string, 
   }
 
   for (const row of response.rows ?? []) {
-    const dateKey = row.dimensionValues?.[0]?.value ?? '';
+    const raw     = row.dimensionValues?.[0]?.value ?? '';
+    const dateKey = raw.length === 8
+      ? `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}`
+      : raw;
     const h       = parseInt(row.dimensionValues?.[1]?.value ?? '0');
     const daily   = result.get(dateKey);
     if (daily && h >= 0 && h < 24) {

@@ -2807,8 +2807,8 @@ export function generateHourlyHtml(
   generatedAt: string,
   dailyTotals?: Map<string, { sessions: number; users: number }>,
 ): string {
-  const CUTOFFS = [7, 12, 16, 18, 21];
-  const CUTOFF_LABELS = ['07:00', '12:00', '16:00', '18:00', '21:00'];
+  const CUTOFFS = [7, 12, 14, 16, 18, 21];
+  const CUTOFF_LABELS = ['07:00', '12:00', '14:00', '16:00', '18:00', '21:00'];
   const dates = Array.from(data.keys()).sort();
 
   // compute max users for heatmap color scaling

@@ -2795,7 +2795,11 @@ function switchPeriod(btn, key) {
 }
 
 // ── 每日各時段流量 ─────────────────────────────────────────────
-export function generateHourlyHtml(data: Map<string, HourlyRow[]>, generatedAt: string): string {
+export function generateHourlyHtml(
+  data: Map<string, HourlyRow[]>,
+  generatedAt: string,
+  dailyTotals?: Map<string, { sessions: number; users: number }>,
+): string {
   const CUTOFFS = [7, 12, 16, 18, 21];
   const CUTOFF_LABELS = ['07:00', '12:00', '16:00', '18:00', '21:00'];
   const dates = Array.from(data.keys()).sort();
@@ -2837,8 +2841,14 @@ export function generateHourlyHtml(data: Map<string, HourlyRow[]>, generatedAt: 
   const hourHeaders = Array.from({length:24},(_,i)=>`<th style="min-width:30px;padding:4px 2px;font-size:11px">${String(i).padStart(2,'0')}</th>`).join('');
 
   // cumulative table
-  const cumHeaders = CUTOFF_LABELS.map(l=>`<th colspan="2">${l} 累計</th>`).join('') + `<th colspan="2" style="background:#1e3a5f">當日總計</th>`;
-  const cumSubHeaders = CUTOFF_LABELS.map(()=>`<th>Sessions</th><th>人數</th>`).join('') + `<th style="background:#1e3a5f">Sessions</th><th style="background:#1e3a5f">人數</th>`;
+  const S = `style="background:#1e3a5f"`;
+  const S2 = `style="background:#1a3a2a"`;
+  const cumHeaders = CUTOFF_LABELS.map(l=>`<th colspan="2">${l} 累計</th>`).join('')
+    + `<th colspan="2" ${S}>當日總計（重複計算）</th>`
+    + `<th colspan="2" ${S2}>當日不重複用戶</th>`;
+  const cumSubHeaders = CUTOFF_LABELS.map(()=>`<th>Sessions</th><th>人數</th>`).join('')
+    + `<th ${S}>Sessions</th><th ${S}>人數</th>`
+    + `<th ${S2}>Sessions</th><th ${S2} style="color:#6ee7b7">人數</th>`;
 
   const cumRows = dates.map(date => {
     const rows = data.get(date)!;
@@ -2852,7 +2862,16 @@ export function generateHourlyHtml(data: Map<string, HourlyRow[]>, generatedAt: 
     }).join('');
     const totalSessions = rows.reduce((s, r) => s + r.sessions, 0);
     const totalUsers    = rows.reduce((s, r) => s + r.users, 0);
-    const totalCells = `<td style="text-align:right;padding:6px 10px;font-weight:700;color:#fff;background:#1a2f4a">${totalSessions.toLocaleString()}</td><td style="text-align:right;padding:6px 10px;font-weight:700;color:#7db8e8;background:#1a2f4a">${totalUsers.toLocaleString()}</td>`;
+    const daily = dailyTotals?.get(date);
+    const uniqSessions = daily?.sessions ?? '-';
+    const uniqUsers    = daily?.users    ?? '-';
+    const bg1 = 'background:#1a2f4a';
+    const bg2 = 'background:#122a1e';
+    const totalCells =
+      `<td style="text-align:right;padding:6px 10px;font-weight:700;color:#fff;${bg1}">${totalSessions.toLocaleString()}</td>` +
+      `<td style="text-align:right;padding:6px 10px;font-weight:700;color:#7db8e8;${bg1}">${totalUsers.toLocaleString()}</td>` +
+      `<td style="text-align:right;padding:6px 10px;font-weight:700;color:#fff;${bg2}">${typeof uniqSessions === 'number' ? uniqSessions.toLocaleString() : uniqSessions}</td>` +
+      `<td style="text-align:right;padding:6px 10px;font-weight:700;color:#6ee7b7;${bg2}">${typeof uniqUsers === 'number' ? uniqUsers.toLocaleString() : uniqUsers}</td>`;
     return `<tr><td style="white-space:nowrap;padding:6px 10px;font-weight:600;color:#a0b4d0">${fmtDate(date)}</td>${cells}${totalCells}</tr>`;
   }).join('');
 

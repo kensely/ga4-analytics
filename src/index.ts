@@ -1120,7 +1120,7 @@ async function main() {
   fs.writeFileSync(path.join(reportsDir, 'report-search.html'), searchHtml, 'utf-8');
   console.log(`✅ 搜尋字詞排行已儲存：reports/report-search.html`);
 
-  const hourlyHtml = generateHourlyHtml(hourlyDays, new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }));
+  const hourlyHtml = generateHourlyHtml(hourlyDays.hourly, new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }), hourlyDays.dailyTotals);
   fs.writeFileSync(path.join(reportsDir, 'report-hourly.html'), hourlyHtml, 'utf-8');
   console.log(`✅ 每日各時段流量已儲存：reports/report-hourly.html`);
 

@@ -559,8 +559,13 @@ export async function fetchHourlyTraffic(date: string): Promise<HourlyRow[]> {
   return result;
 }
 
+export interface HourlyDaysResult {
+  hourly: Map<string, HourlyRow[]>;
+  dailyTotals: Map<string, { sessions: number; users: number }>;
+}
+
 // ── 多日每小時流量（7天熱力圖）──────────────────────────────
-export async function fetchHourlyTrafficDays(days: number): Promise<Map<string, HourlyRow[]>> {
+export async function fetchHourlyTrafficDays(days: number): Promise<HourlyDaysResult> {
   const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
   const endDate = new Date(today);
   endDate.setDate(endDate.getDate() - 1);
@@ -571,42 +576,57 @@ export async function fetchHourlyTrafficDays(days: number): Promise<Map<string, 
   const start = fmt(startDate);
   const end   = fmt(endDate);
 
-  const [response] = await analyticsDataClient.runReport({
-    property: `properties/${PROPERTY_ID}`,
-    dateRanges: [{ startDate: start, endDate: end }],
-    dimensions: [{ name: 'date' }, { name: 'hour' }],
-    metrics: [
-      { name: 'sessions' },
-      { name: 'totalUsers' },
-    ],
-    orderBys: [
-      { dimension: { dimensionName: 'date' }, desc: false },
-      { dimension: { dimensionName: 'hour' }, desc: false },
-    ],
-    limit: days * 24,
-  });
+  const [[hourlyResp], [dailyResp]] = await Promise.all([
+    analyticsDataClient.runReport({
+      property: `properties/${PROPERTY_ID}`,
+      dateRanges: [{ startDate: start, endDate: end }],
+      dimensions: [{ name: 'date' }, { name: 'hour' }],
+      metrics: [{ name: 'sessions' }, { name: 'totalUsers' }],
+      orderBys: [
+        { dimension: { dimensionName: 'date' }, desc: false },
+        { dimension: { dimensionName: 'hour' }, desc: false },
+      ],
+      limit: days * 24,
+    }),
+    analyticsDataClient.runReport({
+      property: `properties/${PROPERTY_ID}`,
+      dateRanges: [{ startDate: start, endDate: end }],
+      dimensions: [{ name: 'date' }],
+      metrics: [{ name: 'sessions' }, { name: 'totalUsers' }],
+      orderBys: [{ dimension: { dimensionName: 'date' }, desc: false }],
+      limit: days,
+    }),
+  ]);
 
-  const result = new Map<string, HourlyRow[]>();
+  const parseDate = (raw: string) =>
+    raw.length === 8 ? `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}` : raw;
+
+  const hourly = new Map<string, HourlyRow[]>();
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const key = fmt(new Date(d));
-    result.set(key, Array.from({ length: 24 }, (_, i) => ({
+    hourly.set(fmt(new Date(d)), Array.from({ length: 24 }, (_, i) => ({
       hour: i, sessions: 0, users: 0, pageViews: 0, newUsers: 0,
     })));
   }
-
-  for (const row of response.rows ?? []) {
-    const raw     = row.dimensionValues?.[0]?.value ?? '';
-    const dateKey = raw.length === 8
-      ? `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}`
-      : raw;
+  for (const row of hourlyResp.rows ?? []) {
+    const dateKey = parseDate(row.dimensionValues?.[0]?.value ?? '');
     const h       = parseInt(row.dimensionValues?.[1]?.value ?? '0');
-    const daily   = result.get(dateKey);
+    const daily   = hourly.get(dateKey);
     if (daily && h >= 0 && h < 24) {
       daily[h].sessions = parseInt(row.metricValues?.[0]?.value ?? '0');
       daily[h].users    = parseInt(row.metricValues?.[1]?.value ?? '0');
     }
   }
-  return result;
+
+  const dailyTotals = new Map<string, { sessions: number; users: number }>();
+  for (const row of dailyResp.rows ?? []) {
+    const dateKey = parseDate(row.dimensionValues?.[0]?.value ?? '');
+    dailyTotals.set(dateKey, {
+      sessions: parseInt(row.metricValues?.[0]?.value ?? '0'),
+      users:    parseInt(row.metricValues?.[1]?.value ?? '0'),
+    });
+  }
+
+  return { hourly, dailyTotals };
 }
 
 // ── 月活躍用戶 MAU ───────────────────────────────────────────

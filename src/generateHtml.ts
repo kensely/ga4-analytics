@@ -2926,7 +2926,11 @@ ${NAV}
         <tbody>${cumRows}</tbody>
       </table>
     </div>
-    <div style="font-size:11px;color:#6e7681;margin-top:8px">※ 累積流量為 00:00 起至該時點前（不含該小時）之總和</div>
+    <div style="font-size:11px;color:#6e7681;margin-top:8px;line-height:1.8">
+      ※ 累積流量為 00:00 起至該時點前（不含該小時）之總和<br>
+      ※ <span style="color:#f0a040">人數欄位為各小時不重複用戶數加總</span>，同一訪客若跨多個小時瀏覽將被重複計算，故各時段累積人數及當日總計人數可能<strong style="color:#f0a040">高於 GA4 每日不重複用戶數</strong>，此為正常現象<br>
+      ※ Sessions（工作階段）為每次獨立訪問，加總不受此影響
+    </div>
   </div>
 
 </div>

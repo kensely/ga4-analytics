@@ -28,6 +28,7 @@ import {
   fetchTopPagesByEngagement,
   fetchMonthlyUsers,
   fetchHourlyTraffic,
+  fetchHourlyTrafficDays,
   fetchChannelUsers,
   fetchChannelMonthlyTrend,
   fetchChannelByItemCategory,
@@ -62,7 +63,7 @@ import {
 } from './fetchReport.js';
 import { compareMom, formatMomTable, MomRow } from './momCompare.js';
 import { generateInsight } from './aiInsight.js';
-import { generateHtml, generateTodayHtml, generateChannelTrendHtml, generateCategoryHtml, generatePromotionHtml, generateAiHtml, generateSearchHtml, CategoryTabData } from './generateHtml.js';
+import { generateHtml, generateTodayHtml, generateChannelTrendHtml, generateCategoryHtml, generatePromotionHtml, generateAiHtml, generateSearchHtml, generateHourlyHtml, CategoryTabData } from './generateHtml.js';
 
 dotenv.config();
 
@@ -942,6 +943,7 @@ async function main() {
     aiLandingCur, aiLandingPrev, aiLandingYear, aiLandingAll,
     searchToday, searchTodayPrev,
     searchWeek,  searchWeekPrev,
+    hourlyDays,
   ] = await Promise.all([
     fetchYesterdayReport(),
     fetchLastMonthSameDayReport(),
@@ -1013,6 +1015,7 @@ async function main() {
     fetchSiteSearch(dates.dayBeforeYesterday, dates.dayBeforeYesterday),
     fetchSiteSearch(last7Start, dates.yesterday),
     fetchSiteSearch(dates.prev7Start, dates.prev7End),
+    fetchHourlyTrafficDays(7),
   ]);
 
   const dailyComparison = compareMom(yesterday, lastMonthSameDay);
@@ -1116,6 +1119,10 @@ async function main() {
   ], new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }));
   fs.writeFileSync(path.join(reportsDir, 'report-search.html'), searchHtml, 'utf-8');
   console.log(`✅ 搜尋字詞排行已儲存：reports/report-search.html`);
+
+  const hourlyHtml = generateHourlyHtml(hourlyDays, new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }));
+  fs.writeFileSync(path.join(reportsDir, 'report-hourly.html'), hourlyHtml, 'utf-8');
+  console.log(`✅ 每日各時段流量已儲存：reports/report-hourly.html`);
 
   // ── HTML（先存無 AI 版，確保報告一定更新）──
   const htmlContent = generateHtml(

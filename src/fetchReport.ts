@@ -559,6 +559,53 @@ export async function fetchHourlyTraffic(date: string): Promise<HourlyRow[]> {
   return result;
 }
 
+// ── 多日每小時流量（7天熱力圖）──────────────────────────────
+export async function fetchHourlyTrafficDays(days: number): Promise<Map<string, HourlyRow[]>> {
+  const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+  const endDate = new Date(today);
+  endDate.setDate(endDate.getDate() - 1);
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - (days - 1));
+
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const start = fmt(startDate);
+  const end   = fmt(endDate);
+
+  const [response] = await analyticsDataClient.runReport({
+    property: `properties/${PROPERTY_ID}`,
+    dateRanges: [{ startDate: start, endDate: end }],
+    dimensions: [{ name: 'date' }, { name: 'hour' }],
+    metrics: [
+      { name: 'sessions' },
+      { name: 'totalUsers' },
+    ],
+    orderBys: [
+      { dimension: { dimensionName: 'date' }, desc: false },
+      { dimension: { dimensionName: 'hour' }, desc: false },
+    ],
+    limit: days * 24,
+  });
+
+  const result = new Map<string, HourlyRow[]>();
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const key = fmt(new Date(d));
+    result.set(key, Array.from({ length: 24 }, (_, i) => ({
+      hour: i, sessions: 0, users: 0, pageViews: 0, newUsers: 0,
+    })));
+  }
+
+  for (const row of response.rows ?? []) {
+    const dateKey = row.dimensionValues?.[0]?.value ?? '';
+    const h       = parseInt(row.dimensionValues?.[1]?.value ?? '0');
+    const daily   = result.get(dateKey);
+    if (daily && h >= 0 && h < 24) {
+      daily[h].sessions = parseInt(row.metricValues?.[0]?.value ?? '0');
+      daily[h].users    = parseInt(row.metricValues?.[1]?.value ?? '0');
+    }
+  }
+  return result;
+}
+
 // ── 月活躍用戶 MAU ───────────────────────────────────────────
 export interface MonthlyUsersRow {
   users: number;

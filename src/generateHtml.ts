@@ -2793,3 +2793,140 @@ function switchPeriod(btn, key) {
 </body>
 </html>`;
 }
+
+// ── 每日各時段流量 ─────────────────────────────────────────────
+export function generateHourlyHtml(data: Map<string, HourlyRow[]>, generatedAt: string): string {
+  const CUTOFFS = [7, 12, 16, 18, 21];
+  const CUTOFF_LABELS = ['07:00', '12:00', '16:00', '18:00', '21:00'];
+  const dates = Array.from(data.keys()).sort();
+
+  // compute max for heatmap color scaling
+  let maxSessions = 1;
+  for (const rows of data.values()) {
+    for (const r of rows) { if (r.sessions > maxSessions) maxSessions = r.sessions; }
+  }
+
+  function heatColor(v: number): string {
+    const ratio = Math.min(v / maxSessions, 1);
+    if (ratio === 0) return '#1a1f2e';
+    const r = Math.round(30  + ratio * (59  - 30));
+    const g = Math.round(100 + ratio * (210 - 100));
+    const b = Math.round(200 + ratio * (255 - 200));
+    const a = 0.15 + ratio * 0.85;
+    return `rgba(${r},${g},${b},${a.toFixed(2)})`;
+  }
+
+  function fmtDate(d: string): string {
+    const [, m, day] = d.split('-');
+    const weekdays = ['日','一','二','三','四','五','六'];
+    const dow = weekdays[new Date(d).getDay()];
+    return `${m}/${day}(${dow})`;
+  }
+
+  // heatmap rows
+  const heatRows = dates.map(date => {
+    const rows = data.get(date)!;
+    const cells = rows.map(r => {
+      const bg = heatColor(r.sessions);
+      const tip = `${r.sessions.toLocaleString()} 工作階段 / ${r.users.toLocaleString()} 人`;
+      return `<td title="${tip}" style="background:${bg};color:#e0e8ff;font-size:11px;text-align:center;padding:4px 2px;min-width:30px">${r.sessions > 0 ? r.sessions.toLocaleString() : ''}</td>`;
+    }).join('');
+    return `<tr><td style="white-space:nowrap;padding:4px 10px;font-weight:600;color:#a0b4d0;font-size:12px">${fmtDate(date)}</td>${cells}</tr>`;
+  }).join('');
+
+  const hourHeaders = Array.from({length:24},(_,i)=>`<th style="min-width:30px;padding:4px 2px;font-size:11px">${String(i).padStart(2,'0')}</th>`).join('');
+
+  // cumulative table
+  const cumHeaders = CUTOFF_LABELS.map(l=>`<th colspan="2">${l} 累計</th>`).join('');
+  const cumSubHeaders = CUTOFF_LABELS.map(()=>`<th>Sessions</th><th>人數</th>`).join('');
+
+  const cumRows = dates.map(date => {
+    const rows = data.get(date)!;
+    const cells = CUTOFFS.map(cutoff => {
+      let cumSessions = 0, cumUsers = 0;
+      for (let h = 0; h < cutoff; h++) {
+        cumSessions += rows[h]?.sessions ?? 0;
+        cumUsers    += rows[h]?.users    ?? 0;
+      }
+      return `<td style="text-align:right;padding:6px 10px">${cumSessions.toLocaleString()}</td><td style="text-align:right;padding:6px 10px;color:#7db8e8">${cumUsers.toLocaleString()}</td>`;
+    }).join('');
+    return `<tr><td style="white-space:nowrap;padding:6px 10px;font-weight:600;color:#a0b4d0">${fmtDate(date)}</td>${cells}</tr>`;
+  }).join('');
+
+  const NAV = `
+  <nav style="display:flex;gap:8px;padding:12px 20px;background:#111827;border-bottom:1px solid #1e2a3a;flex-wrap:wrap">
+    <a style="padding:6px 14px;border-radius:6px;background:#1e2a3a;color:#a0b4d0;text-decoration:none;font-size:13px" href="report-latest.html">📊 流量概覽</a>
+    <a style="padding:6px 14px;border-radius:6px;background:#1e2a3a;color:#a0b4d0;text-decoration:none;font-size:13px" href="report-category.html">🛍️ 三館</a>
+    <a style="padding:6px 14px;border-radius:6px;background:#1e2a3a;color:#a0b4d0;text-decoration:none;font-size:13px" href="report-position.html">📍 版位點擊</a>
+    <a style="padding:6px 14px;border-radius:6px;background:#1e2a3a;color:#a0b4d0;text-decoration:none;font-size:13px" href="report-ai.html">🤖 AI 流量</a>
+    <a style="padding:6px 14px;border-radius:6px;background:#1e2a3a;color:#a0b4d0;text-decoration:none;font-size:13px" href="report-search.html">🔍 搜尋字詞</a>
+    <a style="padding:6px 14px;border-radius:6px;background:#2563eb;color:#fff;text-decoration:none;font-size:13px" href="report-hourly.html">⏰ 時段流量</a>
+  </nav>`;
+
+  return `<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⏰ 每日各時段流量</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .header { background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); padding: 24px 20px; border-bottom: 1px solid #1e2a3a; }
+  .header h1 { font-size: 22px; font-weight: 700; color: #e6edf3; }
+  .header .sub { font-size: 12px; color: #6e7681; margin-top: 4px; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+  .section { background: #161b22; border: 1px solid #1e2a3a; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+  .section-title { font-size: 15px; font-weight: 700; color: #7db8e8; margin-bottom: 16px; }
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: #1e2a3a; }
+  th { color: #7db8e8; font-weight: 600; padding: 8px 6px; text-align: center; }
+  tbody tr:hover td { background: rgba(125,184,232,0.05) !important; }
+  .legend { display: flex; gap: 16px; margin-top: 10px; font-size: 11px; color: #6e7681; align-items: center; }
+  .legend-bar { width: 80px; height: 12px; border-radius: 3px; background: linear-gradient(to right, #1a1f2e, rgba(59,210,255,1)); }
+  td { border-bottom: 1px solid #1e2a3a; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>⏰ 每日各時段流量</h1>
+  <div class="sub">近 ${dates.length} 天 ‧ 產生時間：${generatedAt}</div>
+</div>
+${NAV}
+<div class="container">
+
+  <div class="section">
+    <div class="section-title">📊 每小時流量熱力圖（Sessions）</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th style="text-align:left;padding:8px 10px">日期</th>${hourHeaders}</tr>
+        </thead>
+        <tbody>${heatRows}</tbody>
+      </table>
+    </div>
+    <div class="legend">
+      <span>低</span><div class="legend-bar"></div><span>高</span>
+      <span style="margin-left:16px">數值為當小時 Sessions；將滑鼠懸停在格子上可查看人數</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">📈 固定時段累積流量</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th style="text-align:left;padding:8px 10px">日期</th>${cumHeaders}</tr>
+          <tr><th></th>${cumSubHeaders}</tr>
+        </thead>
+        <tbody>${cumRows}</tbody>
+      </table>
+    </div>
+    <div style="font-size:11px;color:#6e7681;margin-top:8px">※ 累積流量為 00:00 起至該時點前（不含該小時）之總和</div>
+  </div>
+
+</div>
+</body>
+</html>`;
+}

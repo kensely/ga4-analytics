@@ -102,6 +102,11 @@ jobs:
               <div class="title">搜尋字詞排行</div>
               <div class="desc">當天 / 前 7 天 Top 100 搜尋字詞與趨勢</div>
             </a>
+            <a class="card" href="report-hourly.html">
+              <div class="icon">⏰</div>
+              <div class="title">每日各時段流量</div>
+              <div class="desc">近 7 天每小時熱力圖 &amp; 07/12/16/18/21 時段累積</div>
+            </a>
           </div>
           <div class="updated">GENERATED_TIME</div>
           <script>

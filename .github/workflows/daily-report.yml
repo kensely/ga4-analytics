@@ -2,7 +2,7 @@ name: Daily GA4 Report
 
 on:
   schedule:
-    - cron: '0 23 * * *'   # 每天 07:00 台灣時間（UTC+8 = UTC 23:00）
+    - cron: '0 * * * *'    # 每小時整點執行（台灣時間 UTC+8）
   workflow_dispatch:         # 允許手動觸發
 
 jobs:

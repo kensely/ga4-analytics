@@ -2800,14 +2800,14 @@ export function generateHourlyHtml(data: Map<string, HourlyRow[]>, generatedAt: 
   const CUTOFF_LABELS = ['07:00', '12:00', '16:00', '18:00', '21:00'];
   const dates = Array.from(data.keys()).sort();
 
-  // compute max for heatmap color scaling
-  let maxSessions = 1;
+  // compute max users for heatmap color scaling
+  let maxUsers = 1;
   for (const rows of data.values()) {
-    for (const r of rows) { if (r.sessions > maxSessions) maxSessions = r.sessions; }
+    for (const r of rows) { if (r.users > maxUsers) maxUsers = r.users; }
   }
 
   function heatColor(v: number): string {
-    const ratio = Math.min(v / maxSessions, 1);
+    const ratio = Math.min(v / maxUsers, 1);
     if (ratio === 0) return '#1a1f2e';
     const r = Math.round(30  + ratio * (59  - 30));
     const g = Math.round(100 + ratio * (210 - 100));
@@ -2823,13 +2823,13 @@ export function generateHourlyHtml(data: Map<string, HourlyRow[]>, generatedAt: 
     return `${m}/${day}(${dow})`;
   }
 
-  // heatmap rows
+  // heatmap rows（色深 = 人數；格子顯示人數；tooltip 補充 Sessions）
   const heatRows = dates.map(date => {
     const rows = data.get(date)!;
     const cells = rows.map(r => {
-      const bg = heatColor(r.sessions);
-      const tip = `${r.sessions.toLocaleString()} 工作階段 / ${r.users.toLocaleString()} 人`;
-      return `<td title="${tip}" style="background:${bg};color:#e0e8ff;font-size:11px;text-align:center;padding:4px 2px;min-width:30px">${r.sessions > 0 ? r.sessions.toLocaleString() : ''}</td>`;
+      const bg = heatColor(r.users);
+      const tip = `${r.users.toLocaleString()} 人 / ${r.sessions.toLocaleString()} 工作階段`;
+      return `<td title="${tip}" style="background:${bg};color:#e0e8ff;font-size:11px;text-align:center;padding:4px 2px;min-width:30px">${r.users > 0 ? r.users.toLocaleString() : ''}</td>`;
     }).join('');
     return `<tr><td style="white-space:nowrap;padding:4px 10px;font-weight:600;color:#a0b4d0;font-size:12px">${fmtDate(date)}</td>${cells}</tr>`;
   }).join('');
@@ -2837,8 +2837,8 @@ export function generateHourlyHtml(data: Map<string, HourlyRow[]>, generatedAt: 
   const hourHeaders = Array.from({length:24},(_,i)=>`<th style="min-width:30px;padding:4px 2px;font-size:11px">${String(i).padStart(2,'0')}</th>`).join('');
 
   // cumulative table
-  const cumHeaders = CUTOFF_LABELS.map(l=>`<th colspan="2">${l} 累計</th>`).join('');
-  const cumSubHeaders = CUTOFF_LABELS.map(()=>`<th>Sessions</th><th>人數</th>`).join('');
+  const cumHeaders = CUTOFF_LABELS.map(l=>`<th colspan="2">${l} 累計</th>`).join('') + `<th colspan="2" style="background:#1e3a5f">當日總計</th>`;
+  const cumSubHeaders = CUTOFF_LABELS.map(()=>`<th>Sessions</th><th>人數</th>`).join('') + `<th style="background:#1e3a5f">Sessions</th><th style="background:#1e3a5f">人數</th>`;
 
   const cumRows = dates.map(date => {
     const rows = data.get(date)!;
@@ -2850,7 +2850,10 @@ export function generateHourlyHtml(data: Map<string, HourlyRow[]>, generatedAt: 
       }
       return `<td style="text-align:right;padding:6px 10px">${cumSessions.toLocaleString()}</td><td style="text-align:right;padding:6px 10px;color:#7db8e8">${cumUsers.toLocaleString()}</td>`;
     }).join('');
-    return `<tr><td style="white-space:nowrap;padding:6px 10px;font-weight:600;color:#a0b4d0">${fmtDate(date)}</td>${cells}</tr>`;
+    const totalSessions = rows.reduce((s, r) => s + r.sessions, 0);
+    const totalUsers    = rows.reduce((s, r) => s + r.users, 0);
+    const totalCells = `<td style="text-align:right;padding:6px 10px;font-weight:700;color:#fff;background:#1a2f4a">${totalSessions.toLocaleString()}</td><td style="text-align:right;padding:6px 10px;font-weight:700;color:#7db8e8;background:#1a2f4a">${totalUsers.toLocaleString()}</td>`;
+    return `<tr><td style="white-space:nowrap;padding:6px 10px;font-weight:600;color:#a0b4d0">${fmtDate(date)}</td>${cells}${totalCells}</tr>`;
   }).join('');
 
   const NAV = `
@@ -2897,7 +2900,7 @@ ${NAV}
 <div class="container">
 
   <div class="section">
-    <div class="section-title">📊 每小時流量熱力圖（Sessions）</div>
+    <div class="section-title">📊 每小時流量熱力圖（總人數）</div>
     <div class="tbl-wrap">
       <table>
         <thead>
@@ -2908,7 +2911,7 @@ ${NAV}
     </div>
     <div class="legend">
       <span>低</span><div class="legend-bar"></div><span>高</span>
-      <span style="margin-left:16px">數值為當小時 Sessions；將滑鼠懸停在格子上可查看人數</span>
+      <span style="margin-left:16px">數值為當小時總人數；將滑鼠懸停在格子上可查看工作階段數</span>
     </div>
   </div>
 

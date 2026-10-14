@@ -328,6 +328,7 @@ export function generateHtml(
       <a href="report-promotion.html" style="background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;padding:6px 14px;border-radius:16px;font-size:13px;font-weight:600;border:1.5px solid rgba(255,255,255,0.5);">📍 版位點擊</a>
       <a href="report-ai.html"        style="background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;padding:6px 14px;border-radius:16px;font-size:13px;font-weight:600;border:1.5px solid rgba(255,255,255,0.5);">🤖 AI 流量</a>
       <a href="report-search.html"   style="background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;padding:6px 14px;border-radius:16px;font-size:13px;font-weight:600;border:1.5px solid rgba(255,255,255,0.5);">🔍 搜尋字詞</a>
+      <a href="report-hourly.html"  style="background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;padding:6px 14px;border-radius:16px;font-size:13px;font-weight:600;border:1.5px solid rgba(255,255,255,0.5);">⏰ 時段流量</a>
     </div>
     <div style="font-size:12px;opacity:0.75;">產生時間：${generatedAt}<br>資料來源：Google Analytics 4</div>
   </div>
@@ -1110,6 +1111,7 @@ export function generateCategoryHtml(
   <a href="report-promotion.html" class="nav-btn">📍 版位點擊</a>
   <a href="report-ai.html"        class="nav-btn">🤖 AI 流量</a>
   <a href="report-search.html"   class="nav-btn">🔍 搜尋字詞</a>
+  <a href="report-hourly.html"   class="nav-btn">⏰ 時段流量</a>
 </div>
 
 <div class="container">
@@ -1376,6 +1378,7 @@ export function generateChannelTrendHtml(data: ChannelMonthlyRow[]): string {
   <a href="report-promotion.html" class="nav-btn">📍 版位點擊</a>
   <a href="report-ai.html"        class="nav-btn">🤖 AI 流量</a>
   <a href="report-search.html"   class="nav-btn">🔍 搜尋字詞</a>
+  <a href="report-hourly.html"   class="nav-btn">⏰ 時段流量</a>
 </div>
 
 <div class="container">
@@ -1677,6 +1680,7 @@ export function generateTodayHtml(
   <a href="report-promotion.html" class="nav-btn">📍 版位點擊</a>
   <a href="report-ai.html"        class="nav-btn">🤖 AI 流量</a>
   <a href="report-search.html"   class="nav-btn">🔍 搜尋字詞</a>
+  <a href="report-hourly.html"   class="nav-btn">⏰ 時段流量</a>
 </div>
 
 <div class="container">
@@ -1919,6 +1923,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;font-
       <a href="report-promotion.html" class="nav-btn active">📍 版位點擊</a>
       <a href="report-ai.html" class="nav-btn">🤖 AI 流量</a>
       <a href="report-search.html" class="nav-btn">🔍 搜尋字詞</a>
+      <a href="report-hourly.html" class="nav-btn">⏰ 時段流量</a>
     </div>
     <div style="font-size:12px;opacity:.75;text-align:right;">產生時間：${generatedAt}<br>資料來源：Google Analytics 4</div>
   </div>
@@ -2597,6 +2602,7 @@ export function generateAiHtml(periods: AiPeriod[]): string {
   <a href="report-promotion.html" class="nav-btn">📍 版位點擊</a>
   <a href="report-ai.html"        class="nav-btn active">🤖 AI 流量</a>
   <a href="report-search.html"   class="nav-btn">🔍 搜尋字詞</a>
+  <a href="report-hourly.html"   class="nav-btn">⏰ 時段流量</a>
 </div>
 <div class="period-bar">${tabBtns}</div>
 <div class="container">
@@ -2673,6 +2679,7 @@ export function generateSearchHtml(periods: SearchPeriod[], generatedAt: string)
     <a class="nav-btn" href="report-position.html">📍 版位點擊</a>
     <a class="nav-btn" href="report-ai.html">🤖 AI 流量</a>
     <a class="nav-btn active" href="report-search.html">🔍 搜尋字詞</a>
+    <a class="nav-btn" href="report-hourly.html">⏰ 時段流量</a>
   </nav>`;
 
   const tabBtns = periods.map((p, i) =>

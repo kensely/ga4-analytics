@@ -568,7 +568,6 @@ export interface HourlyDaysResult {
 export async function fetchHourlyTrafficDays(days: number): Promise<HourlyDaysResult> {
   const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
   const endDate = new Date(today);
-  endDate.setDate(endDate.getDate() - 1);
   const startDate = new Date(endDate);
   startDate.setDate(startDate.getDate() - (days - 1));
 
